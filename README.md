@@ -1,0 +1,1 @@
+# TrendSpotterV1
