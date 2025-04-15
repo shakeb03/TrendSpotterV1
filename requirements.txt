@@ -1,0 +1,37 @@
+# Data Processing
+pandas
+numpy
+scipy
+
+# Web Scraping
+scrapy
+beautifulsoup4
+requests
+
+# Data Storage
+sqlalchemy
+psycopg2-binary
+pymongo
+
+# Machine Learning
+scikit-learn
+tensorflow
+torch
+
+# API Development
+fastapi
+uvicorn
+
+# Testing
+pytest
+
+# Development
+# jupyter
+# black
+# isort
+# flake8
+
+# Visualization
+matplotlib
+seaborn
+plotly
