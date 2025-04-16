@@ -1,15 +1,19 @@
+"""
+Simple Text Feature Extractor for Toronto Trendspotter
+
+This module provides a simplified text feature extraction that doesn't rely heavily on NLTK.
+It implements basic text processing and TF-IDF vectorization for content text.
+"""
+
 import os
 import sys
 import logging
 import numpy as np
 import re
-import ssl
+import string
 from pathlib import Path
 from datetime import datetime
-from sklearn.feature_extraction.text import TfidfVectorizer
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 # Add project root to path to make imports work
 project_root = Path(__file__).absolute().parents[2]
@@ -26,72 +30,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class TextFeatureExtractor:
-    """Extract features from text content"""
+class SimpleTextFeatureExtractor:
+    """Extract features from text content without heavy NLTK dependencies"""
     
     def __init__(self):
-        # Download NLTK resources with SSL verification disabled if needed
-        try:
-            # Try to create an unverified SSL context to bypass certificate issues
-            try:
-                _create_unverified_https_context = ssl._create_unverified_context
-            except AttributeError:
-                pass
-            else:
-                ssl._create_default_https_context = _create_unverified_https_context
-                
-            # Check if NLTK resources exist, download if needed
-            nltk_data_dir = os.path.join(os.path.expanduser("~"), "nltk_data")
-            os.makedirs(nltk_data_dir, exist_ok=True)
-            
-            try:
-                nltk.data.find('corpora/stopwords')
-            except LookupError:
-                nltk.download('stopwords', download_dir=nltk_data_dir, quiet=True)
-            
-            try:
-                nltk.data.find('corpora/wordnet')
-            except LookupError:
-                nltk.download('wordnet', download_dir=nltk_data_dir, quiet=True)
-                
-            try:
-                nltk.data.find('tokenizers/punkt')
-            except LookupError:
-                nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
-                
-            # Open Multilingual Wordnet
-            try:
-                nltk.data.find('corpora/omw-1.4')
-            except LookupError:
-                try:
-                    nltk.download('omw-1.4', download_dir=nltk_data_dir, quiet=True)
-                except:
-                    logger.warning("Could not download omw-1.4, will proceed without it")
-        
-        except Exception as e:
-            logger.warning(f"Error downloading NLTK resources: {e}")
-            logger.warning("Try running the download_nltk_data.py script first")
-        
-        # Initialize stopwords and lemmatizer
-        try:
-            self.stop_words = set(nltk.corpus.stopwords.words('english'))
-        except:
-            logger.warning("Could not load stopwords, using a minimal set")
-            self.stop_words = {'a', 'an', 'the', 'and', 'or', 'but', 'if', 'because', 
-                              'as', 'what', 'when', 'where', 'how', 'is', 'are', 'was', 
-                              'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 
-                              'does', 'did', 'to', 'at', 'in', 'on', 'by', 'with', 'about', 
-                              'for', 'of', 'this', 'that', 'these', 'those'}
-        
-        try:
-            self.lemmatizer = nltk.stem.WordNetLemmatizer()
-        except:
-            logger.warning("Could not initialize WordNetLemmatizer, will use identity function")
-            self.lemmatizer = type('', (), {'lemmatize': lambda self, word, *args, **kwargs: word})()
+        # Common English stopwords
+        self.stop_words = {
+            'a', 'an', 'the', 'and', 'or', 'but', 'if', 'because', 'as', 'what', 
+            'when', 'where', 'how', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'to', 'at', 'in', 'on', 'by',
+            'with', 'about', 'for', 'of', 'this', 'that', 'these', 'those', 'it', 'its',
+            'i', 'you', 'he', 'she', 'we', 'they', 'them', 'their', 'his', 'her', 'our',
+            'your', 'my', 'from', 'then', 'than', 'so', 'which', 'who', 'whom', 'will',
+            'would', 'should', 'could', 'can', 'may', 'might', 'must'
+        }
         
         # Initialize TF-IDF vectorizer
         self.vectorizer = None
-        logger.info("Initialized TextFeatureExtractor")
+        logger.info("Initialized SimpleTextFeatureExtractor")
     
     def preprocess_text(self, text):
         """
@@ -109,17 +65,18 @@ class TextFeatureExtractor:
         # Convert to lowercase
         text = text.lower()
         
-        # Remove special characters and numbers
-        text = re.sub(r'[^\w\s]', ' ', text)
+        # Remove punctuation
+        text = text.translate(str.maketrans('', '', string.punctuation))
+        
+        # Remove numbers
         text = re.sub(r'\d+', ' ', text)
         
-        # Tokenize
-        tokens = nltk.word_tokenize(text)
+        # Tokenize by splitting on whitespace
+        tokens = text.split()
         
-        # Remove stopwords and lemmatize
+        # Remove stopwords and short words
         processed_tokens = [
-            self.lemmatizer.lemmatize(token) 
-            for token in tokens 
+            token for token in tokens 
             if token not in self.stop_words and len(token) > 2
         ]
         
@@ -128,26 +85,27 @@ class TextFeatureExtractor:
         
         return processed_text
     
-    def fit_vectorizer(self, texts):
+    def fit_vectorizer(self, texts, max_features=100):
         """
         Fit TF-IDF vectorizer on texts
         
         Args:
             texts (list): List of text strings
+            max_features (int): Maximum number of features
             
         Returns:
             sklearn.feature_extraction.text.TfidfVectorizer: Fitted vectorizer
         """
         # Initialize vectorizer
         self.vectorizer = TfidfVectorizer(
-            max_features=100,  # Limit feature dimension
+            max_features=max_features,  # Limit feature dimension
             min_df=2,  # Minimum document frequency
             max_df=0.85,  # Maximum document frequency
             stop_words='english',  # Additional stopwords removal
             ngram_range=(1, 2)  # Consider unigrams and bigrams
         )
         
-        # Fit vectorizer on preprocessed texts
+        # Fit vectorizer on texts
         self.vectorizer.fit(texts)
         
         return self.vectorizer
@@ -182,13 +140,14 @@ class TextFeatureExtractor:
         
         return features_dense
     
-    def process_database_texts(self, limit=100, skip_existing=True):
+    def process_database_texts(self, limit=100, skip_existing=True, max_features=100):
         """
         Process texts from database and store feature vectors
         
         Args:
             limit (int): Maximum number of texts to process
             skip_existing (bool): Skip texts that already have features
+            max_features (int): Maximum number of features in the vector
             
         Returns:
             int: Number of texts processed
@@ -201,15 +160,18 @@ class TextFeatureExtractor:
         
         try:
             # Query for content from MongoDB
-            contents = mongo_db.content.find().limit(limit if limit else 0)
+            logger.info(f"Querying MongoDB for content (limit={limit if limit else 'None'})")
+            contents = list(mongo_db.content.find().limit(limit if limit else 0))
+            logger.info(f"Found {len(contents)} content items to process")
             
             # Preprocess all texts for fitting vectorizer
             all_texts = []
             content_texts = {}
             
+            logger.info("Preprocessing text for all content items...")
             for content in contents:
                 # Combine title and description
-                combined_text = f"{content['title']} {content.get('description', '')}"
+                combined_text = f"{content.get('title', '')} {content.get('description', '')}"
                 
                 # Preprocess text
                 preprocessed_text = self.preprocess_text(combined_text)
@@ -223,10 +185,11 @@ class TextFeatureExtractor:
                 return 0
             
             # Fit vectorizer on all texts
-            self.fit_vectorizer(all_texts)
-            logger.info(f"Fitted vectorizer with {len(all_texts)} texts")
+            logger.info(f"Fitting TF-IDF vectorizer on {len(all_texts)} texts with max_features={max_features}")
+            self.fit_vectorizer(all_texts, max_features=max_features)
             
             # Process each content item
+            logger.info("Generating feature vectors for each content item...")
             for content_id, preprocessed_text in content_texts.items():
                 # Check if features already exist
                 if skip_existing:
@@ -256,25 +219,30 @@ class TextFeatureExtractor:
                 mongo_db.feature_vectors.insert_one(feature_vector)
                 
                 processed_count += 1
-                logger.info(f"Stored text features for content {content_id}")
+                if processed_count % 100 == 0:
+                    logger.info(f"Processed {processed_count} content items so far")
             
             # Store vectorizer vocabulary for future use
+            logger.info("Storing vectorizer vocabulary in database")
             mongo_db.ml_models.insert_one({
                 "model_type": "text_vectorizer",
                 "vectorizer_vocab": list(self.vectorizer.vocabulary_.keys()),
+                "max_features": max_features,
                 "created_at": datetime.now()
             })
             
+            logger.info(f"Successfully processed {processed_count} content items")
             return processed_count
             
         except Exception as e:
             logger.error(f"Error processing database texts: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return processed_count
 
 
 if __name__ == "__main__":
     # Simple test execution
-    extractor = TextFeatureExtractor()
+    extractor = SimpleTextFeatureExtractor()
     num_processed = extractor.process_database_texts(limit=50)
     print(f"Processed {num_processed} text items")
-
