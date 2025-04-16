@@ -80,3 +80,6 @@ pg_dump.sql
 #virtualenv
 .venv/
 venv/
+
+#scrapy cache
+.scrapy/
