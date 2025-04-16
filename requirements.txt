@@ -35,3 +35,9 @@ pytest
 matplotlib
 seaborn
 plotly
+
+
+python-dotenv
+
+geopy 
+nltk
