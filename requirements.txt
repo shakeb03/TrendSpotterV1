@@ -26,10 +26,10 @@ uvicorn
 pytest
 
 # Development
-# jupyter
-# black
-# isort
-# flake8
+jupyter
+black
+isort
+flake8
 
 # Visualization
 matplotlib
@@ -41,3 +41,5 @@ python-dotenv
 
 geopy 
 nltk
+
+tabulate
