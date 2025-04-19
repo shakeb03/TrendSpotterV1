@@ -11,6 +11,7 @@ import logging
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from pathlib import Path
 
@@ -38,6 +39,15 @@ app = FastAPI(
     title="Toronto Trendspotter Recommendation API",
     description="API for serving personalized content recommendations for Toronto",
     version="1.0.0",
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Your React app's URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize database connection
