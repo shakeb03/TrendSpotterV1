@@ -1,0 +1,50 @@
+/* Global CSS for Toronto Trendspotter */
+
+/* Primary colors */
+.bg-toronto-red {
+    background-color: #EE3337;
+  }
+  .bg-toronto-blue {
+    background-color: #003DA6;
+  }
+  .text-toronto-red {
+    color: #EE3337;
+  }
+  .text-toronto-blue {
+    color: #003DA6;
+  }
+  
+  /* Layout helpers */
+  .container-custom {
+    width: 100%;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Button styles */
+  .btn-toronto {
+    display: inline-block;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s;
+  }
+  
+  .btn-toronto-primary {
+    background-color: #1976D2;
+    color: white;
+  }
+  .btn-toronto-primary:hover {
+    background-color: #0c5cad;
+  }
+  
+  /* Card styles */
+  .toronto-card {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+  }
