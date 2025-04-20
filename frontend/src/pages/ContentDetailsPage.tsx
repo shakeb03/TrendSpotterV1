@@ -6,6 +6,7 @@ import { useUser } from '../context/UserContext';
 import RecommendationSection from '../components/recommendations/RecommendationSection';
 import { formatDate, formatDateTime } from '../utils/formatters';
 import ContentSkeleton from '../components/content/ContentSkeleton';
+import ContentCard from '../components/content/ContentCard';
 
 const ContentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,20 +16,19 @@ const ContentDetailsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   
-  // Fetch content details - we'll simulate this by finding the content in recommendations
   useEffect(() => {
     const fetchContent = async () => {
       if (!id) return;
       
       try {
         setIsLoading(true);
+        console.log(`Fetching content with ID: ${id}`);
         
-        // For this demo, we'll fetch popular content and find the requested item
-        // In a real app, you'd have a dedicated endpoint to get content by ID
-        const popular = await api.getPopularContent(100);
-        const foundContent = popular.recommendations.find(item => item.content_id === id);
+        // Use the new direct method to find content
+        const foundContent = await api.getContentById(id);
         
         if (foundContent) {
+          console.log('Content found:', foundContent);
           setContent(foundContent);
           
           // Log view interaction if user is logged in
@@ -36,11 +36,22 @@ const ContentDetailsPage: React.FC = () => {
             api.logInteraction(user.id, id, 'view');
           }
         } else {
-          setError('Content not found');
+          console.log('Content not found, creating placeholder');
+          // Create a placeholder content item
+          setContent({
+            content_id: id,
+            title: "Toronto Experience",
+            description: "This content item couldn't be found. It might have been removed or is temporarily unavailable. Please try exploring other content on our site.",
+            image_url: `https://source.unsplash.com/featured/?toronto,${Math.random()}`,
+            categories: ["placeholder"],
+            tags: ["toronto", "placeholder"],
+            score: 5.0,
+            approach: "placeholder"
+          });
         }
       } catch (err) {
+        console.error('Error loading content:', err);
         setError('Error loading content');
-        console.error(err);
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +75,37 @@ const ContentDetailsPage: React.FC = () => {
       api.logInteraction(user.id, content.content_id, 'save');
     }
   };
+
+  // Fallback similar content component
+const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) => {
+  const { data, isLoading } = useQuery(
+    ['fallbackSimilar', excludeId], 
+    async () => {
+      // Get popular content as a fallback
+      const popular = await api.getPopularContent(12);
+      // Filter out the current item
+      return popular.recommendations.filter(item => item.content_id !== excludeId).slice(0, 4);
+    }
+  );
+  
+  if (isLoading || !data) {
+    return (
+      <>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <ContentSkeleton key={index} />
+        ))}
+      </>
+    );
+  }
+  
+  return (
+    <>
+      {data.map((item) => (
+        <ContentCard key={item.content_id} content={item} />
+      ))}
+    </>
+  );
+};
   
   const handleShare = () => {
     // In a real app, this would open a share dialog
@@ -270,13 +312,29 @@ const ContentDetailsPage: React.FC = () => {
       </div>
       
       {/* Similar Content */}
-      <RecommendationSection
-        title="You Might Also Like"
-        subtitle="Similar content you might enjoy"
-        fetchFn={() => api.getSimilarContent(content.content_id, 8)}
-        queryKey={['similar', content.content_id]}
-        emptyMessage="No similar content found"
-      />
+      {content && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">You Might Also Like</h2>
+          <p className="text-gray-600 mb-6">Similar content you might enjoy</p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {isLoading ? (
+              // Loading skeletons
+              Array.from({ length: 4 }).map((_, index) => (
+                <ContentSkeleton key={index} />
+              ))
+            ) : error ? (
+              // Error state
+              <div className="col-span-full bg-red-50 rounded-lg p-4 text-red-700">
+                Unable to load similar content.
+              </div>
+            ) : (
+              // Simplified similar content display - just show popular content
+              <FallbackSimilarContent excludeId={content.content_id} />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

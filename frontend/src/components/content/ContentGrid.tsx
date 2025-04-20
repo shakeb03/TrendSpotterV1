@@ -2,7 +2,7 @@ import React from 'react';
 import Masonry from 'react-masonry-css';
 import ContentCard from './ContentCard';
 import { ContentItem } from '../../services/api';
-import ContentSkeleton from './ContentSkeleton'
+import ContentSkeleton from './ContentSkeleton';
 
 interface ContentGridProps {
   items: ContentItem[];
@@ -15,6 +15,8 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   isLoading = false, 
   emptyMessage = "No content found" 
 }) => {
+  console.log('ContentGrid received items:', items);
+  
   // Define breakpoints for the masonry grid
   const breakpointColumnsObj = {
     default: 4,
@@ -40,7 +42,7 @@ const ContentGrid: React.FC<ContentGridProps> = ({
   }
 
   // If no items, show empty message
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <svg 
@@ -57,21 +59,36 @@ const ContentGrid: React.FC<ContentGridProps> = ({
           />
         </svg>
         <p className="text-gray-600">{emptyMessage}</p>
+        <p className="text-gray-500 text-sm mt-2">Try adjusting your filters or search criteria</p>
       </div>
     );
   }
 
+  // Log validity of items
+  const validItems = items.filter(item => 
+    item && 
+    typeof item === 'object' && 
+    'content_id' in item && 
+    'title' in item
+  );
+  
+  if (validItems.length !== items.length) {
+    console.warn(`Found ${items.length - validItems.length} invalid items in ContentGrid`);
+  }
+
   // Render the masonry grid with content cards
   return (
-    <Masonry
-      breakpointCols={breakpointColumnsObj}
-      className="masonry-grid"
-      columnClassName="masonry-grid_column"
-    >
-      {items.map((item) => (
-        <ContentCard key={item.content_id} content={item} />
-      ))}
-    </Masonry>
+    <div className="content-grid-container">
+      <Masonry
+        breakpointCols={breakpointColumnsObj}
+        className="masonry-grid"
+        columnClassName="masonry-grid_column"
+      >
+        {validItems.map((item) => (
+          <ContentCard key={item.content_id} content={item} />
+        ))}
+      </Masonry>
+    </div>
   );
 };
 

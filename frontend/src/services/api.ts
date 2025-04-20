@@ -8,6 +8,12 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-type': 'application/json'
+  },
+  // Add better error handling
+  validateStatus: (status) => {
+    // Consider any 2xx status code as successful
+    // For 422 errors, we'll handle them in the catch block
+    return status >= 200 && status < 300;
   }
 });
 
@@ -59,14 +65,22 @@ export const api = {
         Object.assign(params, { neighborhood });
       }
       
+      console.log(`Fetching recommendations for user ${userId} with params:`, params);
       const response = await apiClient.get(
         `/recommendations/user/${userId}`, 
         { params }
       );
+      console.log(`Got user recommendations:`, response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching user recommendations:', error);
-      throw error;
+      // Return empty recommendations object to avoid breaking UI
+      return {
+        recommendations: [],
+        count: 0,
+        model_used: "error",
+        execution_time: 0
+      };
     }
   },
   
@@ -79,14 +93,23 @@ export const api = {
     modelType = 'content'
   ): Promise<SimilarContentResponse> => {
     try {
+      console.log(`Fetching similar content to ${contentId}`);
       const response = await apiClient.get(
         `/recommendations/similar/${contentId}`, 
         { params: { count, model_type: modelType } }
       );
+      console.log(`Got similar content:`, response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching similar content:', error);
-      throw error;
+      // Return empty response to avoid breaking UI
+      return {
+        similar_items: [],
+        count: 0,
+        content_id: contentId,
+        content_title: "",
+        execution_time: 0
+      };
     }
   },
   
@@ -99,19 +122,27 @@ export const api = {
     season?: string
   ): Promise<RecommendationResponse> => {
     try {
-      const params = { count };
+      const params: any = { count };
       if (season) {
-        Object.assign(params, { season });
+        params.season = season;
       }
       
+      console.log(`Fetching recommendations for neighborhood ${neighborhood} with params:`, params);
       const response = await apiClient.get(
         `/recommendations/location?neighborhood=${encodeURIComponent(neighborhood)}`, 
         { params }
       );
+      console.log(`Got neighborhood recommendations:`, response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching location recommendations:', error);
-      throw error;
+      // Return empty recommendations to avoid breaking UI
+      return {
+        recommendations: [],
+        count: 0,
+        model_used: "error",
+        execution_time: 0
+      };
     }
   },
   
@@ -171,6 +202,78 @@ export const api = {
     if (month >= 6 && month <= 8) return 'summer';
     if (month >= 9 && month <= 11) return 'fall';
     return 'winter';
+  },
+
+  /**
+   * Get direct content item by ID (using dedicated endpoint)
+   */
+  getContentById: async (contentId: string): Promise<ContentItem | null> => {
+    console.log(`Trying to find content with ID: ${contentId}`);
+    
+    try {
+      // Try the direct endpoint first
+      const response = await apiClient.get(`/content/${contentId}`);
+      console.log(`Got direct content response:`, response.data);
+      
+      // Convert the response to match ContentItem format
+      const item: ContentItem = {
+        content_id: response.data.content_id,
+        title: response.data.title,
+        description: response.data.description || "",
+        image_url: response.data.image_url || "",
+        categories: response.data.categories || [],
+        tags: response.data.tags || [],
+        neighborhood: response.data.neighborhood || undefined,
+        score: 1.0, // Default score
+        approach: "direct",
+        is_event: response.data.is_event || false,
+        event_date: response.data.event_date,
+        event_venue: response.data.event_venue
+      };
+      
+      return item;
+    } catch (directError) {
+      console.warn('Direct endpoint failed, falling back to search:', directError);
+      
+      try {
+        // First try popular content
+        const popular = await api.getPopularContent(100);
+        console.log(`Got ${popular.recommendations.length} popular items to search`);
+        
+        let foundItem = popular.recommendations.find(item => 
+          item.content_id === contentId || 
+          item.content_id.toString() === contentId.toString()
+        );
+        
+        if (foundItem) {
+          console.log('Found item in popular content');
+          return foundItem;
+        }
+        
+        // Try different categories
+        const categories = ['food', 'art', 'outdoor', 'event', 'shopping', 'nightlife'];
+        for (const category of categories) {
+          console.log(`Searching in ${category} category...`);
+          const categoryContent = await api.getPopularContent(50, category);
+          
+          foundItem = categoryContent.recommendations.find(item => 
+            item.content_id === contentId || 
+            item.content_id.toString() === contentId.toString()
+          );
+          
+          if (foundItem) {
+            console.log(`Found item in ${category} category`);
+            return foundItem;
+          }
+        }
+        
+        console.log('Content not found in any category');
+        return null;
+      } catch (error) {
+        console.error('Error searching for content by ID:', error);
+        return null;
+      }
+    }
   },
   
   /**
