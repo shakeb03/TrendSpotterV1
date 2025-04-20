@@ -12,10 +12,12 @@ interface ContentCardProps {
 const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
   const { user } = useUser();
   const [saved, setSaved] = useState(false);
-
-  // Get primary category (for styling)
-  // (We keep this for future potential styling purposes)
-  const _primaryCategory = content.categories[0] || 'misc';
+  
+  // Validate content object to prevent errors
+  if (!content || typeof content !== 'object' || !content.content_id) {
+    console.error('Invalid content object:', content);
+    return null; // Don't render if content is invalid
+  }
   
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -38,10 +40,13 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
   };
   
   // Determine if this is an event
-  const isEvent = api.isEvent(content);
+  const isEvent = content.is_event || api.isEvent(content);
   
   // Get primary category (for styling)
-  const primaryCategory = content.categories[0] || 'misc';
+  // (We keep this for future potential styling purposes)
+  const _primaryCategory = content.categories && content.categories.length > 0 
+    ? content.categories[0] 
+    : 'misc';
   
   // Format event date if applicable
   const eventDate = content.event_date ? formatDate(new Date(content.event_date)) : null;
@@ -60,8 +65,9 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
               alt={content.title}
               className="absolute top-0 left-0 w-full h-full object-cover"
               onError={(e) => {
-                // Fallback if image fails to load
-                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=Toronto';
+                const target = e.target as HTMLImageElement;
+                console.log(`Image failed to load for ${content.title}:`, content.image_url);
+                target.src = `https://via.placeholder.com/300x200/e2e8f0/1e293b?text=${encodeURIComponent(content.title.substring(0, 20))}`;
               }}
             />
           ) : (
@@ -133,7 +139,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
           
           {/* Categories/tags */}
           <div className="flex flex-wrap gap-1 mt-2">
-            {content.categories.slice(0, 2).map((category, index) => (
+            {content.categories && content.categories.slice(0, 2).map((category, index) => (
               <span 
                 key={`${category}-${index}`}
                 className={`inline-block px-2 py-1 rounded-md text-xs font-medium bg-opacity-10 capitalize category-tag ${category}`}
@@ -143,7 +149,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
               </span>
             ))}
             
-            {content.tags.slice(0, 2).map((tag, index) => (
+            {content.tags && content.tags.slice(0, 2).map((tag, index) => (
               <span 
                 key={`${tag}-${index}`}
                 className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
@@ -179,7 +185,7 @@ const getCategoryColor = (category: string): string => {
     theater: '#ec4899',      // pink-500
   };
 
-  return colors[category.toLowerCase()] || '#6b7280'; // gray-500 default
+  return colors[category?.toLowerCase()] || '#6b7280'; // gray-500 default
 };
 
 export default ContentCard;

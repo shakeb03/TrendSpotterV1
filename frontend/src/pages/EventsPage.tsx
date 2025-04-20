@@ -17,46 +17,89 @@ const EventsPage: React.FC = () => {
   
   // Fetch all events
   const { data, isLoading, error } = useQuery(
-    ['events'],
+    ['events', activeSeason],
     async () => {
-      const result = await api.getPopularContent(50, 'event');
-      return result.recommendations;
+      console.log(`Fetching events with season: ${activeSeason}`);
+      
+      // Use the dedicated events function instead of getPopularContent
+      const events = await api.getEvents(50);
+      console.log('Events API response:', events);
+      
+      return events;
     }
   );
   
   // Filter events by season and search query
   const filteredEvents = React.useMemo(() => {
-    if (!data) return [];
+    if (!data) {
+      console.log('No event data returned from API');
+      return [];
+    }
     
-    return data.filter(item => {
+    console.log(`Filtering ${data.length} events by season: ${activeSeason} and search: "${searchQuery}"`);
+    
+    const filtered = data.filter(item => {
       // Season filter
       const seasonMatch = 
         activeSeason === 'all' || 
-        item.tags.includes(activeSeason);
+        item.tags?.includes(activeSeason);
       
       // Search filter
       const searchMatch = 
         searchQuery === '' || 
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
       
       return seasonMatch && searchMatch;
     });
+    
+    console.log(`After filtering: ${filtered.length} events match criteria`);
+    return filtered;
   }, [data, activeSeason, searchQuery]);
   
   // Group events by date for UI
-  const upcomingEvents = filteredEvents.filter(event => 
-    event.event_date && new Date(event.event_date) >= new Date()
-  );
-  
-  // Sort by date
-  upcomingEvents.sort((a, b) => {
-    if (a.event_date && b.event_date) {
-      return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+  const upcomingEvents = React.useMemo(() => {
+    if (!filteredEvents?.length) {
+      console.log('No filtered events to process');
+      return [];
     }
-    return 0;
-  });
+    
+    // Count how many events have dates
+    const withDateCount = filteredEvents.filter(event => event.event_date).length;
+    const withoutDateCount = filteredEvents.length - withDateCount;
+    
+    console.log(`Events with dates: ${withDateCount}, without dates: ${withoutDateCount}`);
+    
+    // If most events don't have dates, treat them all as upcoming
+    if (withDateCount < (filteredEvents.length / 2)) {
+      console.log('Most events don\'t have dates, treating all as upcoming');
+      return filteredEvents;
+    }
+    
+    // Otherwise filter by date and sort
+    const upcoming = filteredEvents.filter(event => {
+      // If no event date, include it anyway
+      if (!event.event_date) return true;
+      
+      // Check if event date is in the future
+      const eventDate = new Date(event.event_date);
+      return eventDate >= new Date();
+    });
+    
+    console.log(`Found ${upcoming.length} upcoming events`);
+    
+    // Sort by date (only those with dates will be properly sorted)
+    upcoming.sort((a, b) => {
+      if (!a.event_date && !b.event_date) return 0;
+      if (!a.event_date) return 1;  // No date goes after dates
+      if (!b.event_date) return -1; // Dates go before no dates
+      
+      return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+    });
+    
+    return upcoming;
+  }, [filteredEvents]);
 
   return (
     <div className="space-y-8">
@@ -149,15 +192,49 @@ const EventsPage: React.FC = () => {
     </div>
 
     {/* Events grid */}
-    <ContentGrid
-      items={upcomingEvents}
-      isLoading={isLoading}
-      emptyMessage={
-        searchQuery
-          ? 'No events match your search'
-          : 'No events found for the selected season'
-      }
-    />
+    <div>
+        {upcomingEvents.length === 0 && !isLoading ? (
+          // Show fallback message with Toronto event information
+          <div className="bg-white rounded-lg border border-gray-200 p-6 text-center">
+            <img 
+              src="https://source.unsplash.com/random/800x400/?toronto,event" 
+              alt="Toronto Events"
+              className="w-full h-48 object-cover rounded-lg mb-4"
+            />
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Toronto Events Calendar</h3>
+            <p className="text-gray-600 mb-4">
+              Toronto hosts thousands of events throughout the year, from cultural festivals to sporting events.
+              Check back soon for upcoming {activeSeason !== 'all' ? activeSeason : ''} events!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a 
+                href="https://www.toronto.ca/explore-enjoy/festivals-events/" 
+                target="_blank"
+                rel="noopener noreferrer" 
+                className="text-primary-500 hover:text-primary-600 font-medium"
+              >
+                Visit Toronto Events Calendar
+              </a>
+              <button
+                onClick={() => setActiveSeason('all')}
+                className={activeSeason !== 'all' ? "text-primary-500 hover:text-primary-600 font-medium" : "hidden"}
+              >
+                View All Seasons
+              </button>
+            </div>
+          </div>
+        ) : (
+          <ContentGrid 
+            items={upcomingEvents} 
+            isLoading={isLoading} 
+            emptyMessage={
+              searchQuery 
+                ? "No events match your search"
+                : "No events found for the selected season"
+            }
+          />
+        )}
+      </div>
   </>
 </div>
       
