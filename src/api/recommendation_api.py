@@ -192,13 +192,14 @@ async def get_user_recommendations(
         
         # Get user recommendations
         if model_type == "hybrid" and neighborhood:
-            location = {"neighborhood": neighborhood}
+            # Use Toronto-specific recommendations
             recs = model.get_toronto_specific_recommendations(
                 user_id=user_id, 
-                location=location, 
+                location={"neighborhood": neighborhood}, 
                 n=count
             )
         else:
+            # Use regular user recommendations
             recs = model.recommend_for_user(user_id, n=count)
         
         # Format recommendations
@@ -371,16 +372,67 @@ async def get_popular_content(
             
             # Get content items (random items if aggregation fails)
             content_query = {}
-            if category:
-                content_query["categories"] = category
             
-            content_items = list(db.content.find(content_query).limit(count))
-            filtered_items = [{
-                "content_id": item["_id"],
-                "score": 1.0,
-                "model": "random",
-                "approach": "fallback"
-            } for item in content_items]
+            # Filter by category if specified
+            if category:
+                # Special handling for event category
+                if category.lower() == 'event':
+                    # Check both categories and tags for "event"
+                    content_query = {
+                        "$or": [
+                            {"categories": {"$in": ["event", "Event"]}},
+                            {"tags": {"$in": ["event", "Event"]}}
+                        ]
+                    }
+                    content_items = list(db.content.find(content_query).limit(count))
+                    
+                    # Also check toronto_events collection
+                    event_ids = [event["content_id"] for event in db.toronto_events.find({}, {"content_id": 1})]
+                    event_content = list(db.content.find({"_id": {"$in": event_ids}}).limit(count))
+                    
+                    # Combine and remove duplicates
+                    seen = set()
+                    combined_items = []
+                    
+                    # First add items from toronto_events
+                    for item in event_content:
+                        if item["_id"] not in seen:
+                            seen.add(item["_id"])
+                            combined_items.append(item)
+                    
+                    # Then add other event items
+                    for item in content_items:
+                        if item["_id"] not in seen and len(combined_items) < count:
+                            seen.add(item["_id"])
+                            combined_items.append(item)
+                    
+                    # Create filtered items from combined content
+                    filtered_items = [{
+                        "content_id": item["_id"],
+                        "score": 1.0,  # Default score
+                        "model": "category_filter",
+                        "approach": "category_filter"
+                    } for item in combined_items[:count]]
+                    
+                else:
+                    # Regular category filtering
+                    content_query["categories"] = category
+                    content_items = list(db.content.find(content_query).limit(count))
+                    filtered_items = [{
+                        "content_id": item["_id"],
+                        "score": 1.0,
+                        "model": "category_filter",
+                        "approach": "category_filter"
+                    } for item in content_items]
+            else:
+                # No category specified, get random content
+                content_items = list(db.content.find(content_query).limit(count))
+                filtered_items = [{
+                    "content_id": item["_id"],
+                    "score": 1.0,
+                    "model": "random",
+                    "approach": "fallback"
+                } for item in content_items]
         
         # Format recommendations
         formatted_recs = []
@@ -402,7 +454,7 @@ async def get_popular_content(
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error getting popular content: {str(e)}")
-    
+
 @app.get("/content/{content_id}")
 async def get_content_by_id(content_id: str):
     """Get a single content item by ID"""

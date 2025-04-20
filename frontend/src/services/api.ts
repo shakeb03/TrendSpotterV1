@@ -275,6 +275,91 @@ export const api = {
       }
     }
   },
+
+  /**
+   * Get Toronto events
+   */
+  getEvents: async (count = 50): Promise<ContentItem[]> => {
+    try {
+      console.log('Fetching events specifically');
+      
+      // Try multiple approaches to find events
+      const results: ContentItem[] = [];
+      
+      // 1. Try the popular content endpoint with event category filter
+      try {
+        const popular = await api.getPopularContent(count, 'event');
+        if (popular.recommendations?.length > 0) {
+          console.log(`Found ${popular.recommendations.length} events from popular endpoint`);
+          results.push(...popular.recommendations);
+        }
+      } catch (err) {
+        console.warn('Error fetching events from popular endpoint:', err);
+      }
+      
+      // 2. Directly query the events if needed
+      /* if (results.length < 1) {
+        try {
+          // Create mock event data as a fallback
+          console.log('Creating fallback event data');
+          const fallbackEvents: ContentItem[] = [
+            {
+              content_id: "event1",
+              title: "Toronto Jazz Festival",
+              description: "Annual festival celebrating jazz music with performances by local and international artists.",
+              image_url: "https://source.unsplash.com/random/800x600/?jazz,music",
+              categories: ["event", "music"],
+              tags: ["summer", "festival", "jazz", "music", "toronto"],
+              score: 5,
+              approach: "fallback",
+              is_event: true,
+              event_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days in the future
+              event_venue: "Nathan Phillips Square"
+            },
+            {
+              content_id: "event2",
+              title: "Toronto International Film Festival",
+              description: "One of the largest publicly attended film festivals in the world.",
+              image_url: "https://source.unsplash.com/random/800x600/?film,cinema",
+              categories: ["event", "film"],
+              tags: ["fall", "festival", "film", "cinema", "toronto"],
+              score: 5,
+              approach: "fallback",
+              is_event: true,
+              event_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days in the future
+              event_venue: "TIFF Bell Lightbox"
+            },
+            {
+              content_id: "event3",
+              title: "Taste of Toronto Food Festival",
+              description: "Culinary festival featuring Toronto's best restaurants and food vendors.",
+              image_url: "https://source.unsplash.com/random/800x600/?food,festival",
+              categories: ["event", "food"],
+              tags: ["summer", "festival", "food", "culinary", "toronto"],
+              score: 4.5,
+              approach: "fallback",
+              is_event: true,
+              event_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(), // 21 days in the future
+              event_venue: "Distillery District"
+            }
+          ];
+          
+          // Only add fallbacks if we have very few real events
+          if (results.length < 3) {
+            results.push(...fallbackEvents);
+          }
+        } catch (err) {
+          console.warn('Error creating fallback events:', err);
+        }
+      } */
+      
+      console.log(`Returning ${results.length} events`);
+      return results;
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      return [];
+    }
+  },
   
   /**
    * Helper to determine if a content is an event
