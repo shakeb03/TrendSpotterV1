@@ -36,18 +36,35 @@ const ExplorePage: React.FC = () => {
     async () => {
       let result;
       
-      if (activeNeighborhood !== 'All Neighborhoods') {
-        // Fetch neighborhood-specific recommendations
-        result = await api.getLocationRecommendations(activeNeighborhood, 50);
-      } else if (user) {
-        // Fetch personalized recommendations if user is logged in
-        result = await api.getUserRecommendations(user.id, 50, 'hybrid');
-      } else {
-        // Fetch popular content if no user is logged in
-        result = await api.getPopularContent(50);
+      try {
+        if (activeNeighborhood !== 'All Neighborhoods') {
+          // Fetch neighborhood-specific recommendations
+          result = await api.getLocationRecommendations(activeNeighborhood, 50);
+          console.log('Neighborhood recommendations:', result);
+        } else if (activeCategory !== 'all') {
+          // Fetch category-specific recommendations
+          result = await api.getPopularContent(50, activeCategory);
+          console.log('Category recommendations:', result);
+        } else if (user) {
+          // Fetch personalized recommendations if user is logged in
+          result = await api.getUserRecommendations(user.id, 50, 'hybrid');
+          console.log('User recommendations:', result);
+        } else {
+          // Fetch popular content if no user is logged in
+          result = await api.getPopularContent(50);
+          console.log('Popular recommendations:', result);
+        }
+        
+        return result.recommendations;
+      } catch (err) {
+        console.error('Error fetching recommendations:', err);
+        return [];
       }
-      
-      return result.recommendations;
+    },
+    {
+      // Refetch when these dependencies change
+      enabled: true,
+      refetchOnWindowFocus: false,
     }
   );
   

@@ -13,6 +13,8 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
   const { user } = useUser();
   const [saved, setSaved] = useState(false);
 
+  // Get primary category (for styling)
+  // (We keep this for future potential styling purposes)
   const _primaryCategory = content.categories[0] || 'misc';
   
   const handleSave = (e: React.MouseEvent) => {

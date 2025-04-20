@@ -76,7 +76,8 @@ def start_api(host="127.0.0.1", port=8000, reload=False):
         host=host,
         port=port,
         reload=reload,
-        log_level="info"
+        log_level="info",
+        access_log=True  # Enable access logs
     )
 
 def main():

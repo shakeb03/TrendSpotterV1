@@ -313,10 +313,10 @@ async def get_location_recommendations(
 
 @app.get("/recommendations/popular", response_model=RecommendationResponse)
 async def get_popular_content(
-    count: int = Query(10, ge=1, le=50),
+    count: int = Query(10, ge=1, le=100),  # Limit to max 100 items
     category: Optional[str] = None
 ):
-    """Get popular content items, optionally filtered by category"""
+    """Get popular content items"""
     start_time = datetime.now()
     
     try:
@@ -326,43 +326,61 @@ async def get_popular_content(
         # Count interactions per item
         item_interactions = {}
         
-        pipeline = [
-            {"$group": {
-                "_id": "$content_id", 
-                "count": {"$sum": 1}
-            }},
-            {"$sort": {"count": -1}},
-            {"$limit": count * 5}  # Get more than needed to allow for filtering
-        ]
-        
-        interaction_counts = list(db.interactions.aggregate(pipeline))
-        
-        # If we need to filter by category, get content details
-        filtered_items = []
-        
-        for item in interaction_counts:
-            content_id = item["_id"]
-            count = item["count"]
+        try:
+            pipeline = [
+                {"$group": {
+                    "_id": "$content_id", 
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"count": -1}},
+                {"$limit": count * 5}  # Get more than needed to allow for filtering
+            ]
             
-            # Get content details
-            content = db.content.find_one({"_id": content_id})
-            if not content:
-                continue
-                
-            # Filter by category if specified
-            if category and category not in content.get("categories", []):
-                continue
-                
-            filtered_items.append({
-                "content_id": content_id,
-                "score": float(count),
-                "model": "popularity",
-                "approach": "popularity"
-            })
+            interaction_counts = list(db.interactions.aggregate(pipeline))
             
-            # Break if we have enough items
-            if len(filtered_items) >= count:
-                break
+            # If we need to filter by category, get content details
+            filtered_items = []
+            
+            for item in interaction_counts:
+                content_id = item["_id"]
+                count_val = item["count"]
+                
+                # Get content details
+                content = db.content.find_one({"_id": content_id})
+                if not content:
+                    continue
+                    
+                # Filter by category if specified
+                if category and category not in content.get("categories", []):
+                    continue
+                    
+                filtered_items.append({
+                    "content_id": content_id,
+                    "score": float(count_val),
+                    "model": "popularity",
+                    "approach": "popularity"
+                })
+                
+                # Break if we have enough items
+                if len(filtered_items) >= count:
+                    break
+        except Exception as e:
+            logger.error(f"Error in popularity aggregation: {e}")
+            # Fallback: get random content items
+            filtered_items = []
+            
+            # Get content items (random items if aggregation fails)
+            content_query = {}
+            if category:
+                content_query["categories"] = category
+            
+            content_items = list(db.content.find(content_query).limit(count))
+            filtered_items = [{
+                "content_id": item["_id"],
+                "score": 1.0,
+                "model": "random",
+                "approach": "fallback"
+            } for item in content_items]
         
         # Format recommendations
         formatted_recs = []
@@ -384,6 +402,58 @@ async def get_popular_content(
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error getting popular content: {str(e)}")
+    
+@app.get("/content/{content_id}")
+async def get_content_by_id(content_id: str):
+    """Get a single content item by ID"""
+    try:
+        # Find content in the database
+        content = db.content.find_one({"_id": content_id})
+        
+        if not content:
+            # Try searching with the string version (MongoDB sometimes converts ObjectIds)
+            content = db.content.find_one({"_id": str(content_id)})
+        
+        if not content:
+            raise HTTPException(status_code=404, detail="Content not found")
+        
+        # Check if it's an event
+        is_event = False
+        event_data = None
+        
+        event = db.toronto_events.find_one({"content_id": content_id})
+        if event:
+            is_event = True
+            event_data = {
+                "event_date": event.get("start_date"),
+                "event_venue": event.get("venue")
+            }
+        
+        # Format the response
+        response = {
+            "content_id": content["_id"],
+            "title": content.get("title", ""),
+            "description": content.get("description", ""),
+            "image_url": content.get("image_url", ""),
+            "categories": content.get("categories", []),
+            "tags": content.get("tags", []),
+            "neighborhood": content.get("location", {}).get("neighborhood"),
+            "is_event": is_event
+        }
+        
+        # Add event data if available
+        if is_event:
+            response.update(event_data)
+        
+        return response
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting content by ID {content_id}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error getting content: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
