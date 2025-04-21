@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import { api, ContentItem } from '../services/api';
 import ContentGrid from '../components/content/ContentGrid';
 import { useUser } from '../context/UserContext';
+import { Link } from 'react-router-dom';
 
 // Categories for filtering
 const CATEGORIES = [
@@ -105,13 +106,29 @@ const ExplorePage: React.FC = () => {
   return (
     <div>
       <>
-        <div className="space-y-4">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">Explore Toronto</h1>
-          <p className="text-gray-600 max-w-3xl">
-            Discover the best events, places, and experiences Toronto has to offer. 
-            Filter by category, search for specific interests, or browse by neighborhood.
-          </p>
+          <Link 
+            to="/explore/map"
+            className="btn-secondary flex items-center text-sm"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" 
+              />
+            </svg>
+            View Map
+          </Link>
         </div>
+        <p className="text-gray-600 max-w-3xl">
+          Discover the best events, places, and experiences Toronto has to offer. 
+          Filter by category, search for specific interests, or browse by neighborhood.
+        </p>
+      </div>
   
         {/* Filters and search */}
         <div className="flex flex-col md:flex-row gap-4 items-start mb-8 mt-8">
