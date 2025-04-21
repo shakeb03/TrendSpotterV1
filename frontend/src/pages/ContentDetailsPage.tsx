@@ -3,10 +3,42 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { api, ContentItem } from '../services/api';
 import { useUser } from '../context/UserContext';
-import RecommendationSection from '../components/recommendations/RecommendationSection';
 import { formatDate, formatDateTime } from '../utils/formatters';
 import ContentSkeleton from '../components/content/ContentSkeleton';
 import ContentCard from '../components/content/ContentCard';
+import { interactionService } from '../services/interactions';
+import ShareModal from '../components/common/ShareModal';
+
+// Fallback similar content component
+const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) => {
+  const { data, isLoading } = useQuery(
+    ['fallbackSimilar', excludeId], 
+    async () => {
+      // Get popular content as a fallback
+      const popular = await api.getPopularContent(12);
+      // Filter out the current item
+      return popular.recommendations.filter(item => item.content_id !== excludeId).slice(0, 4);
+    }
+  );
+  
+  if (isLoading || !data) {
+    return (
+      <>
+        {Array.from({ length: 4 }).map((_, index) => (
+          <ContentSkeleton key={index} />
+        ))}
+      </>
+    );
+  }
+  
+  return (
+    <>
+      {data.map((item) => (
+        <ContentCard key={item.content_id} content={item} />
+      ))}
+    </>
+  );
+};
 
 const ContentDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,7 +47,16 @@ const ContentDetailsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
-  
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Check if item is saved on mount
+  useEffect(() => {
+    if (user && content?.content_id) {
+      const itemIsSaved = interactionService.isItemSaved(user.id, content.content_id);
+      setIsSaved(itemIsSaved);
+    }
+  }, [user, content?.content_id]);
+
   useEffect(() => {
     const fetchContent = async () => {
       if (!id) return;
@@ -24,7 +65,30 @@ const ContentDetailsPage: React.FC = () => {
         setIsLoading(true);
         console.log(`Fetching content with ID: ${id}`);
         
-        // Use the new direct method to find content
+        // Handle fallback event IDs specially
+        if (id.startsWith('fallback-')) {
+          console.log('This is a fallback event, creating placeholder content');
+          // Create a placeholder for fallback events
+          setContent({
+            content_id: id,
+            title: id.includes('jazz') ? "Toronto Jazz Festival" : 
+                  id.includes('film') ? "Toronto International Film Festival" : 
+                  "Toronto Festival Event",
+            description: "This is a sample event created to demonstrate the Toronto Trendspotter app. In a production system, this would be a real event from a database or API.",
+            image_url: `https://source.unsplash.com/featured/?toronto,festival`,
+            categories: ["event"],
+            tags: ["toronto", "sample", "festival", "event"],
+            score: 5.0,
+            approach: "fallback",
+            is_event: true,
+            event_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            event_venue: "Toronto Venue"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        // Use the API service to get content
         const foundContent = await api.getContentById(id);
         
         if (foundContent) {
@@ -60,6 +124,33 @@ const ContentDetailsPage: React.FC = () => {
     fetchContent();
   }, [id, user]);
   
+  const handleSave = () => {
+    if (!user || !content) return;
+    
+    // Toggle saved state
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState);
+    
+    // Update saved status in service
+    if (newSavedState) {
+      interactionService.saveItem(user.id, content.content_id);
+    } else {
+      interactionService.unsaveItem(user.id, content.content_id);
+    }
+    
+    // Log the interaction
+    interactionService.logInteraction(user.id, content.content_id, newSavedState ? 'save' : 'click');
+  };
+  
+  const handleShare = () => {
+    setIsShareModalOpen(true);
+    
+    // Log the interaction
+    if (user && content) {
+      interactionService.logInteraction(user.id, content.content_id, 'share');
+    }
+  };
+  
   // Determine if this is an event
   const isEvent = content ? api.isEvent(content) : false;
   
@@ -67,54 +158,6 @@ const ContentDetailsPage: React.FC = () => {
   const eventDate = content?.event_date 
     ? formatDateTime(new Date(content.event_date)) 
     : null;
-  
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-    
-    if (user && content) {
-      api.logInteraction(user.id, content.content_id, 'save');
-    }
-  };
-
-  // Fallback similar content component
-const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) => {
-  const { data, isLoading } = useQuery(
-    ['fallbackSimilar', excludeId], 
-    async () => {
-      // Get popular content as a fallback
-      const popular = await api.getPopularContent(12);
-      // Filter out the current item
-      return popular.recommendations.filter(item => item.content_id !== excludeId).slice(0, 4);
-    }
-  );
-  
-  if (isLoading || !data) {
-    return (
-      <>
-        {Array.from({ length: 4 }).map((_, index) => (
-          <ContentSkeleton key={index} />
-        ))}
-      </>
-    );
-  }
-  
-  return (
-    <>
-      {data.map((item) => (
-        <ContentCard key={item.content_id} content={item} />
-      ))}
-    </>
-  );
-};
-  
-  const handleShare = () => {
-    // In a real app, this would open a share dialog
-    alert('Share functionality would be implemented here');
-    
-    if (user && content) {
-      api.logInteraction(user.id, content.content_id, 'share');
-    }
-  };
   
   if (isLoading) {
     return (
@@ -312,28 +355,36 @@ const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) =>
       </div>
       
       {/* Similar Content */}
-      {content && (
-        <div className="mt-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">You Might Also Like</h2>
-          <p className="text-gray-600 mb-6">Similar content you might enjoy</p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {isLoading ? (
-              // Loading skeletons
-              Array.from({ length: 4 }).map((_, index) => (
-                <ContentSkeleton key={index} />
-              ))
-            ) : error ? (
-              // Error state
-              <div className="col-span-full bg-red-50 rounded-lg p-4 text-red-700">
-                Unable to load similar content.
-              </div>
-            ) : (
-              // Simplified similar content display - just show popular content
-              <FallbackSimilarContent excludeId={content.content_id} />
-            )}
-          </div>
+      <div className="mt-10">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">You Might Also Like</h2>
+        <p className="text-gray-600 mb-6">Similar content you might enjoy</p>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {isLoading ? (
+            // Loading skeletons
+            Array.from({ length: 4 }).map((_, index) => (
+              <ContentSkeleton key={index} />
+            ))
+          ) : error ? (
+            // Error state
+            <div className="col-span-full bg-red-50 rounded-lg p-4 text-red-700">
+              Unable to load similar content.
+            </div>
+          ) : (
+            // Simplified similar content display - just show popular content
+            <FallbackSimilarContent excludeId={content.content_id} />
+          )}
         </div>
+      </div>
+      
+      {/* Share modal */}
+      {content && (
+        <ShareModal
+          contentId={content.content_id}
+          title={content.title}
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+        />
       )}
     </div>
   );
@@ -374,7 +425,7 @@ const getCategoryColor = (category: string, shade: string = '500'): string => {
     }
   };
 
-  const categoryColors = colors[category.toLowerCase()] || colors['event'];
+  const categoryColors = colors[category?.toLowerCase()] || colors['event'];
   return categoryColors[shade] || '#6b7280'; // gray-500 default
 };
 

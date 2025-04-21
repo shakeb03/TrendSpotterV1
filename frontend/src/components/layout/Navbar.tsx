@@ -37,49 +37,73 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Desktop menu */}
-          <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-            <Link 
-              to="/" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                isActive('/') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:text-primary-600'
-              }`}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/explore" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                isActive('/explore') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:text-primary-600'
-              }`}
-            >
-              Explore
-            </Link>
-            <Link 
-              to="/events" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                isActive('/events') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:text-primary-600'
-              }`}
-            >
-              Events
-            </Link>
-            {user && (
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            <div className="flex space-x-4">
               <Link 
-                to="/profile" 
+                to="/" 
                 className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  isActive('/profile') 
+                  isActive('/') 
                     ? 'bg-primary-50 text-primary-600' 
                     : 'text-gray-700 hover:text-primary-600'
                 }`}
               >
-                Profile
+                Home
               </Link>
-            )}
+              <Link 
+                to="/explore" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/explore') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                Explore
+              </Link>
+              <Link 
+                to="/explore/map" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/explore/map') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                Map
+              </Link>
+              <Link 
+                to="/events" 
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  isActive('/events') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:text-primary-600'
+                }`}
+              >
+                Events
+              </Link>
+              {user && (
+                <>
+                  <Link 
+                    to="/saved" 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      isActive('/saved') 
+                        ? 'bg-primary-50 text-primary-600' 
+                        : 'text-gray-700 hover:text-primary-600'
+                    }`}
+                  >
+                    Saved
+                  </Link>
+                  <Link 
+                    to="/profile" 
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      isActive('/profile') 
+                        ? 'bg-primary-50 text-primary-600' 
+                        : 'text-gray-700 hover:text-primary-600'
+                    }`}
+                  >
+                    Profile
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="hidden md:flex items-center">
@@ -162,52 +186,78 @@ const Navbar: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link 
-              to="/" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                isActive('/') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
-              }`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/explore" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                isActive('/explore') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
-              }`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Explore
-            </Link>
-            <Link 
-              to="/events" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                isActive('/events') 
-                  ? 'bg-primary-50 text-primary-600' 
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
-              }`}
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Events
-            </Link>
-            {user && (
+            <div className="space-y-1">
               <Link 
-                to="/profile" 
+                to="/" 
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
-                  isActive('/profile') 
+                  isActive('/') 
                     ? 'bg-primary-50 text-primary-600' 
                     : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
-                Profile
+                Home
               </Link>
-            )}
+              <Link 
+                to="/explore" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isActive('/explore') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Explore
+              </Link>
+              <Link 
+                to="/explore/map" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isActive('/explore/map') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Map
+              </Link>
+              <Link 
+                to="/events" 
+                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                  isActive('/events') 
+                    ? 'bg-primary-50 text-primary-600' 
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                }`}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Events
+              </Link>
+              {user && (
+                <>
+                  <Link 
+                    to="/saved" 
+                    className={`block px-3 py-2 rounded-md text-base font-medium ${
+                      isActive('/saved') 
+                        ? 'bg-primary-50 text-primary-600' 
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Saved Items
+                  </Link>
+                  <Link 
+                    to="/profile" 
+                    className={`block px-3 py-2 rounded-md text-base font-medium ${
+                      isActive('/profile') 
+                        ? 'bg-primary-50 text-primary-600' 
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-primary-600'
+                    }`}
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
           
           <div className="pt-4 pb-3 border-t border-gray-200">

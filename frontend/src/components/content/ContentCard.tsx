@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
 import { api, ContentItem } from '../../services/api';
 import { formatDate } from '../../utils/formatters';
+import { interactionService } from '../../services/interactions';
 
 interface ContentCardProps {
   content: ContentItem;
   width?: number;
+  onRemove?: (contentId: string) => void;
 }
 
-const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ content, width, onRemove }) => {
   const { user } = useUser();
   const [saved, setSaved] = useState(false);
+  
+  // Check if item is saved on mount
+  useEffect(() => {
+    if (user && content.content_id) {
+      const isSaved = interactionService.isItemSaved(user.id, content.content_id);
+      setSaved(isSaved);
+    }
+  }, [user, content.content_id]);
   
   // Validate content object to prevent errors
   if (!content || typeof content !== 'object' || !content.content_id) {
@@ -23,19 +33,45 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Toggle saved state
-    setSaved(!saved);
+    if (!user) return;
     
-    // Log the interaction if a user is logged in
-    if (user) {
-      api.logInteraction(user.id, content.content_id, 'save');
+    // Toggle saved state
+    const newSavedState = !saved;
+    setSaved(newSavedState);
+    
+    // Update saved status
+    if (newSavedState) {
+      interactionService.saveItem(user.id, content.content_id);
+    } else {
+      interactionService.unsaveItem(user.id, content.content_id);
+      
+      // If onRemove is provided, call it (for SavedItemsPage)
+      if (onRemove) {
+        onRemove(content.content_id);
+      }
     }
+    
+    // Log the interaction
+    interactionService.logInteraction(user.id, content.content_id, newSavedState ? 'save' : 'click');
   };
   
   const handleClick = () => {
     // Log the click interaction if a user is logged in
     if (user) {
-      api.logInteraction(user.id, content.content_id, 'click');
+      interactionService.logInteraction(user.id, content.content_id, 'click');
+    }
+  };
+  
+  const handleShare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Share the content
+    interactionService.shareItem(content.content_id, 'clipboard');
+    
+    // Log the interaction if a user is logged in
+    if (user) {
+      interactionService.logInteraction(user.id, content.content_id, 'share');
     }
   };
   
@@ -76,21 +112,43 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, width }) => {
             </div>
           )}
           
-          {/* Save button */}
-          <button 
-            className={`absolute top-2 right-2 p-2 rounded-full ${
-              saved ? 'bg-primary-500 text-white' : 'bg-white text-gray-700'
-            } shadow hover:shadow-md transition-all duration-200`}
-            onClick={handleSave}
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path 
-                fillRule="evenodd" 
-                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" 
-                clipRule="evenodd" 
-              />
-            </svg>
-          </button>
+          {/* Action buttons */}
+          <div className="absolute top-2 right-2 flex space-x-2">
+            {/* Save button */}
+            <button 
+              className={`p-2 rounded-full ${
+                saved ? 'bg-primary-500 text-white' : 'bg-white text-gray-700'
+              } shadow hover:shadow-md transition-all duration-200`}
+              onClick={handleSave}
+              aria-label={saved ? "Unsave" : "Save"}
+              title={saved ? "Unsave" : "Save"}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path 
+                  fillRule="evenodd" 
+                  d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" 
+                  clipRule="evenodd" 
+                />
+              </svg>
+            </button>
+            
+            {/* Share button */}
+            <button 
+              className="p-2 rounded-full bg-white text-gray-700 shadow hover:shadow-md transition-all duration-200"
+              onClick={handleShare}
+              aria-label="Share"
+              title="Share"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" 
+                />
+              </svg>
+            </button>
+          </div>
           
           {/* Event badge */}
           {isEvent && (
