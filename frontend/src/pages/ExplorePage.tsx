@@ -1,57 +1,106 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
-import { api, ContentItem } from '../services/api';
+import { api } from '../services/api';
 import ContentGrid from '../components/content/ContentGrid';
 import { useUser } from '../context/UserContext';
-import { Link } from 'react-router-dom';
-
-// Categories for filtering
-const CATEGORIES = [
-  'all', 'food', 'art', 'outdoor', 'event', 
-  'shopping', 'nightlife', 'attraction'
-];
-
-// Toronto neighborhoods for filtering
-const NEIGHBORHOODS = [
-  'All Neighborhoods',
-  'Downtown Core',
-  'Distillery District',
-  'Kensington Market',
-  'Queen West',
-  'Yorkville',
-  'The Beaches',
-  'Liberty Village',
-  'Little Italy',
-  'Chinatown'
-];
+import { Link, useSearchParams } from 'react-router-dom';
+import SearchBar from '../components/search/SearchBar';
 
 const ExplorePage: React.FC = () => {
   const { user } = useUser();
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [activeNeighborhood, setActiveNeighborhood] = useState('All Neighborhoods');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Extract search parameters
+  const searchQuery = searchParams.get('q') || '';
+  const categoryParam = searchParams.get('category') || 'all';
+  const neighborhoodParam = searchParams.get('neighborhood') || 'All Neighborhoods';
+  const seasonParam = searchParams.get('season') || 'all';
+  
+  const [activeCategory, setActiveCategory] = useState(categoryParam);
+  const [activeNeighborhood, setActiveNeighborhood] = useState(neighborhoodParam);
+  const [searchTerm, setSearchTerm] = useState(searchQuery);
+  const [activeSeason, setActiveSeason] = useState(seasonParam);
+  
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchTerm) params.append('q', searchTerm);
+    if (activeCategory !== 'all') params.append('category', activeCategory);
+    if (activeNeighborhood !== 'All Neighborhoods') params.append('neighborhood', activeNeighborhood);
+    if (activeSeason !== 'all') params.append('season', activeSeason);
+    
+    setSearchParams(params);
+  }, [activeCategory, activeNeighborhood, searchTerm, activeSeason, setSearchParams]);
+  
+  // Categories for filtering
+  const CATEGORIES = [
+    'all', 'food', 'art', 'outdoor', 'event', 
+    'shopping', 'nightlife', 'attraction'
+  ];
+
+  // Toronto neighborhoods for filtering
+  const NEIGHBORHOODS = [
+    'All Neighborhoods',
+    'Downtown Core',
+    'Distillery District',
+    'Kensington Market',
+    'Queen West',
+    'Yorkville',
+    'The Beaches',
+    'Liberty Village',
+    'Little Italy',
+    'Chinatown'
+  ];
+  
+  // Seasons for filtering
+  const SEASONS = [
+    { value: 'all', label: 'All Seasons' },
+    { value: 'spring', label: 'Spring' },
+    { value: 'summer', label: 'Summer' },
+    { value: 'fall', label: 'Fall' },
+    { value: 'winter', label: 'Winter' }
+  ];
+  
+  // Get current season
+  const getCurrentSeason = () => {
+    const month = new Date().getMonth();
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'fall';
+    return 'winter';
+  };
   
   // Fetch recommendations based on user (if logged in) or popular content
   const { data, isLoading, error } = useQuery(
-    ['explore', user?.id, activeCategory, activeNeighborhood],
+    ['explore', user?.id, activeCategory, activeNeighborhood, searchTerm, activeSeason],
     async () => {
       let result;
       
       try {
-        if (activeNeighborhood !== 'All Neighborhoods') {
-          // Fetch neighborhood-specific recommendations
-          result = await api.getLocationRecommendations(activeNeighborhood, 50);
-          console.log('Neighborhood recommendations:', result);
-        } else if (activeCategory !== 'all') {
-          // Fetch category-specific recommendations
-          result = await api.getPopularContent(50, activeCategory);
-          console.log('Category recommendations:', result);
-        } else if (user) {
-          // Fetch personalized recommendations if user is logged in
+        // Use search functionality if we have search parameters
+        if (searchTerm || activeCategory !== 'all' || activeNeighborhood !== 'All Neighborhoods' || activeSeason !== 'all') {
+          // Neighborhood-specific recommendations
+          if (activeNeighborhood !== 'All Neighborhoods') {
+            result = await api.getLocationRecommendations(activeNeighborhood, 50);
+            console.log('Neighborhood recommendations:', result);
+          } 
+          // Category-specific recommendations
+          else if (activeCategory !== 'all') {
+            result = await api.getPopularContent(50, activeCategory);
+            console.log('Category recommendations:', result);
+          } 
+          else {
+            // General search
+            result = await api.getPopularContent(50);
+          }
+        }
+        // Personalized recommendations if user is logged in
+        else if (user) {
           result = await api.getUserRecommendations(user.id, 50, 'hybrid');
           console.log('User recommendations:', result);
-        } else {
-          // Fetch popular content if no user is logged in
+        } 
+        // Popular content if no user is logged in
+        else {
           result = await api.getPopularContent(50);
           console.log('Popular recommendations:', result);
         }
@@ -69,26 +118,31 @@ const ExplorePage: React.FC = () => {
     }
   );
   
-  // Filter content based on category and search query
+  // Filter content based on search query and active filters
   const filteredContent = React.useMemo(() => {
     if (!data) return [];
     
     return data.filter(item => {
+      // Filter by search query
+      const searchMatch = 
+        searchTerm === '' || 
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.tags && item.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
+      
       // Filter by category
       const categoryMatch = 
         activeCategory === 'all' || 
-        item.categories.some(cat => cat.toLowerCase() === activeCategory.toLowerCase());
+        (item.categories && item.categories.some(cat => cat.toLowerCase() === activeCategory.toLowerCase()));
       
-      // Filter by search query
-      const searchMatch = 
-        searchQuery === '' || 
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      // Filter by season
+      const seasonMatch = 
+        activeSeason === 'all' || 
+        (item.tags && item.tags.some(tag => tag.toLowerCase() === activeSeason.toLowerCase()));
       
-      return categoryMatch && searchMatch;
+      return searchMatch && categoryMatch && seasonMatch;
     });
-  }, [data, activeCategory, searchQuery]);
+  }, [data, activeCategory, searchTerm, activeSeason]);
   
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -98,9 +152,15 @@ const ExplorePage: React.FC = () => {
     setActiveNeighborhood(event.target.value);
   };
   
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    // Search is already handled by the filteredContent memo
+  const handleSearch = (searchData: any) => {
+    setSearchTerm(searchData.query);
+    setActiveCategory(searchData.category);
+    setActiveNeighborhood(searchData.neighborhood);
+    setActiveSeason(searchData.season);
+  };
+
+  const handleSeasonChange = (season: string) => {
+    setActiveSeason(season);
   };
 
   return (
@@ -130,8 +190,17 @@ const ExplorePage: React.FC = () => {
         </p>
       </div>
   
+        {/* Enhanced search bar */}
+        <div className="my-6">
+          <SearchBar 
+            variant="default" 
+            onSearch={handleSearch} 
+            initialQuery={searchTerm}
+          />
+        </div>
+
         {/* Filters and search */}
-        <div className="flex flex-col md:flex-row gap-4 items-start mb-8 mt-8">
+        <div className="flex flex-col md:flex-row gap-4 items-start mb-8">
           {/* Category filters */}
           <div className="flex overflow-x-auto pb-2 md:pb-0 scrollbar-hide gap-2 flex-grow">
             {CATEGORIES.map(category => (
@@ -163,27 +232,21 @@ const ExplorePage: React.FC = () => {
               ))}
             </select>
           </div>
-  
-          {/* Search form */}
-          <form onSubmit={handleSearch} className="w-full md:w-auto">
-            <div className="relative">
-              <input
-                type="text"
-                className="input-field w-full md:w-64 pl-10"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" 
-                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
-              </div>
-            </div>
-          </form>
+          
+          {/* Season filter */}
+          <div className="w-full md:w-auto">
+            <select
+              className="input-field w-full md:w-40"
+              value={activeSeason}
+              onChange={(e) => handleSeasonChange(e.target.value)}
+            >
+              {SEASONS.map(season => (
+                <option key={season.value} value={season.value}>
+                  {season.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
   
         {/* Error state */}
@@ -216,12 +279,13 @@ const ExplorePage: React.FC = () => {
           </p>
   
           {/* Clear filters button */}
-          {(activeCategory !== 'all' || activeNeighborhood !== 'All Neighborhoods' || searchQuery) && (
+          {(activeCategory !== 'all' || activeNeighborhood !== 'All Neighborhoods' || searchTerm || activeSeason !== 'all') && (
             <button
               onClick={() => {
                 setActiveCategory('all');
                 setActiveNeighborhood('All Neighborhoods');
-                setSearchQuery('');
+                setSearchTerm('');
+                setActiveSeason('all');
               }}
               className="text-primary-500 text-sm hover:text-primary-700"
             >
@@ -235,7 +299,7 @@ const ExplorePage: React.FC = () => {
           items={filteredContent} 
           isLoading={isLoading} 
           emptyMessage={
-            searchQuery 
+            searchTerm 
               ? "No results match your search"
               : "No content found for the selected filters"
           }

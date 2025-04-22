@@ -1,57 +1,61 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
+// frontend/src/App.tsx
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import ExplorePage from './pages/ExplorePage';
 import ExploreMapPage from './pages/ExploreMapPage';
-import NeighborhoodPage from './pages/NeighborhoodPage';
-import EventsPage from './pages/EventsPage';
 import ContentDetailsPage from './pages/ContentDetailsPage';
+import EventsPage from './pages/EventsPage';
+import NeighborhoodPage from './pages/NeighborhoodPage';
 import ProfilePage from './pages/ProfilePage';
 import SavedItemsPage from './pages/SavedItemsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import { UserProvider } from './context/UserContext';
 import './App.css';
 
-// Create a client for React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      cacheTime: 30 * 60 * 1000, // 30 minutes
-      retry: 1,
-    },
-  },
-});
+// Search components
+import SearchWrapper from './components/search/SearchWrapper';
+// import RecommendationEngineVisualizer from './components/recommendations/RecommendationEngineVisualizer';
+
+// ScrollToTop component to reset scroll position when navigating
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <Router>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto w-full">
+    <UserProvider>
+      <Router>
+        <ScrollToTop />
+        <div className="flex flex-col min-h-screen">
+          <Navbar />
+          <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/explore" element={<ExplorePage />} />
-                <Route path="/explore/map" element={<ExploreMapPage />} />
-                <Route path="/neighborhood/:name" element={<NeighborhoodPage />} />
-                <Route path="/events" element={<EventsPage />} />
-                <Route path="/content/:id" element={<ContentDetailsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/saved" element={<SavedItemsPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </Router>
-      </UserProvider>
-    </QueryClientProvider>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/explore/map" element={<ExploreMapPage />} />
+              <Route path="/content/:id" element={<ContentDetailsPage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/neighborhood/:name" element={<NeighborhoodPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/saved" element={<SavedItemsPage />} />
+              <Route path="/search" element={<SearchWrapper />} />
+              {/* <Route path="/engine-demo" element={<RecommendationEngineVisualizer />} /> */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </UserProvider>
   );
 }
 
