@@ -1,11 +1,15 @@
+// Updated Navbar.tsx with search integration
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/UserContext';
+import SearchBar from '../search/SearchBar';
 
 const Navbar: React.FC = () => {
   const { user, login, logout } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // For demo purposes, we'll provide a way to quickly login as sample users
   const [showLoginOptions, setShowLoginOptions] = useState(false);
@@ -21,6 +25,17 @@ const Navbar: React.FC = () => {
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+  
+  const handleSearch = (searchData: any) => {
+    const params = new URLSearchParams();
+    if (searchData.query) params.append('q', searchData.query);
+    if (searchData.category !== 'all') params.append('category', searchData.category);
+    if (searchData.neighborhood !== 'All Neighborhoods') params.append('neighborhood', searchData.neighborhood);
+    if (searchData.season !== 'all') params.append('season', searchData.season);
+    
+    navigate(`/explore?${params.toString()}`);
+    setShowSearch(false);
   };
 
   return (
@@ -106,7 +121,18 @@ const Navbar: React.FC = () => {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Search button */}
+            <button
+              className="text-gray-500 hover:text-gray-700"
+              onClick={() => setShowSearch(!showSearch)}
+              aria-label="Search"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            
             {user ? (
               <div className="flex items-center space-x-2">
                 <div className="rounded-full h-8 w-8 overflow-hidden">
@@ -160,6 +186,17 @@ const Navbar: React.FC = () => {
 
           {/* Mobile menu button */}
           <div className="flex items-center md:hidden">
+            {/* Mobile search button */}
+            <button
+              className="p-2 rounded-md text-gray-700 hover:text-primary-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-1"
+              onClick={() => setShowSearch(!showSearch)}
+            >
+              <span className="sr-only">Search</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+            
             <button
               onClick={toggleMenu}
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-primary-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
@@ -181,6 +218,29 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Expanded search overlay */}
+      {showSearch && (
+        <div className="absolute z-20 w-full bg-white shadow-md border-t border-gray-200 p-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Search Toronto Trendspotter</h3>
+              <button
+                onClick={() => setShowSearch(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <SearchBar 
+              variant="hero" 
+              onSearch={handleSearch} 
+            />
+          </div>
+        </div>
+      )}
 
       {/* Mobile menu, show/hide based on menu state */}
       {isMenuOpen && (
