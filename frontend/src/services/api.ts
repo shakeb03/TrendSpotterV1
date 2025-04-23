@@ -173,7 +173,7 @@ export const api = {
   logInteraction: async (
     userId: string, 
     contentId: string, 
-    interactionType: 'view' | 'save' | 'click' | 'share'
+    interactionType: 'view' | 'save' | 'click' | 'share' | 'feedback'
   ) => {
     try {
       const response = await apiClient.post('/interactions', {

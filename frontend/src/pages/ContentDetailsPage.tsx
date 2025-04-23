@@ -9,10 +9,14 @@ import ContentCard from '../components/content/ContentCard';
 import { interactionService } from '../services/interactions';
 import ShareModal from '../components/common/ShareModal';
 
+import FeedbackModal, { FeedbackData } from '../components/common/FeedbackModal';
+import { feedbackService } from '../services/feedback';
+
+
 // Fallback similar content component
-const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) => {
+const FallbackSimilarContent: React.FC<{ excludeId: string }> = ({ excludeId }) => {
   const { data, isLoading } = useQuery(
-    ['fallbackSimilar', excludeId], 
+    ['fallbackSimilar', excludeId],
     async () => {
       // Get popular content as a fallback
       const popular = await api.getPopularContent(12);
@@ -20,7 +24,7 @@ const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) =>
       return popular.recommendations.filter(item => item.content_id !== excludeId).slice(0, 4);
     }
   );
-  
+
   if (isLoading || !data) {
     return (
       <>
@@ -30,7 +34,7 @@ const FallbackSimilarContent: React.FC<{excludeId: string}> = ({ excludeId }) =>
       </>
     );
   }
-  
+
   return (
     <>
       {data.map((item) => (
@@ -49,6 +53,19 @@ const ContentDetailsPage: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  const [showFeedback, setShowFeedback] = useState<boolean>(false);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+
+
+
+
+  useEffect(() => {
+    if (content?.content_id) {
+      const rating = feedbackService.getAverageRating(content.content_id);
+      setAverageRating(rating);
+    }
+  }, [content]);
+
   // Check if item is saved on mount
   useEffect(() => {
     if (user && content?.content_id) {
@@ -60,20 +77,20 @@ const ContentDetailsPage: React.FC = () => {
   useEffect(() => {
     const fetchContent = async () => {
       if (!id) return;
-      
+
       try {
         setIsLoading(true);
         console.log(`Fetching content with ID: ${id}`);
-        
+
         // Handle fallback event IDs specially
         if (id.startsWith('fallback-')) {
           console.log('This is a fallback event, creating placeholder content');
           // Create a placeholder for fallback events
           setContent({
             content_id: id,
-            title: id.includes('jazz') ? "Toronto Jazz Festival" : 
-                  id.includes('film') ? "Toronto International Film Festival" : 
-                  "Toronto Festival Event",
+            title: id.includes('jazz') ? "Toronto Jazz Festival" :
+              id.includes('film') ? "Toronto International Film Festival" :
+                "Toronto Festival Event",
             description: "This is a sample event created to demonstrate the Toronto Trendspotter app. In a production system, this would be a real event from a database or API.",
             image_url: `https://source.unsplash.com/featured/?toronto,festival`,
             categories: ["event"],
@@ -87,14 +104,14 @@ const ContentDetailsPage: React.FC = () => {
           setIsLoading(false);
           return;
         }
-        
+
         // Use the API service to get content
         const foundContent = await api.getContentById(id);
-        
+
         if (foundContent) {
           console.log('Content found:', foundContent);
           setContent(foundContent);
-          
+
           // Log view interaction if user is logged in
           if (user) {
             api.logInteraction(user.id, id, 'view');
@@ -120,45 +137,56 @@ const ContentDetailsPage: React.FC = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchContent();
   }, [id, user]);
-  
+
+  const handleFeedbackSubmit = async (feedbackData: FeedbackData) => {
+    await feedbackService.submitFeedback({
+      ...feedbackData,
+      contentId: content?.content_id
+    });
+
+    // Update the average rating
+    const newRating = feedbackService.getAverageRating(content?.content_id || '');
+    setAverageRating(newRating);
+  };
+
   const handleSave = () => {
     if (!user || !content) return;
-    
+
     // Toggle saved state
     const newSavedState = !isSaved;
     setIsSaved(newSavedState);
-    
+
     // Update saved status in service
     if (newSavedState) {
       interactionService.saveItem(user.id, content.content_id);
     } else {
       interactionService.unsaveItem(user.id, content.content_id);
     }
-    
+
     // Log the interaction
     interactionService.logInteraction(user.id, content.content_id, newSavedState ? 'save' : 'click');
   };
-  
+
   const handleShare = () => {
     setIsShareModalOpen(true);
-    
+
     // Log the interaction
     if (user && content) {
       interactionService.logInteraction(user.id, content.content_id, 'share');
     }
   };
-  
+
   // Determine if this is an event
   const isEvent = content ? api.isEvent(content) : false;
-  
+
   // Format event date if applicable
-  const eventDate = content?.event_date 
-    ? formatDateTime(new Date(content.event_date)) 
+  const eventDate = content?.event_date
+    ? formatDateTime(new Date(content.event_date))
     : null;
-  
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -180,7 +208,7 @@ const ContentDetailsPage: React.FC = () => {
       </div>
     );
   }
-  
+
   if (error || !content) {
     return (
       <div className="text-center py-16">
@@ -197,13 +225,13 @@ const ContentDetailsPage: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Image */}
       <div className="rounded-xl overflow-hidden mb-6 bg-gray-100">
         {content.image_url ? (
-          <img 
+          <img
             src={content.image_url}
             alt={content.title}
             className="w-full h-auto max-h-[500px] object-cover"
@@ -214,28 +242,28 @@ const ContentDetailsPage: React.FC = () => {
           </div>
         )}
       </div>
-      
+
       {/* Content info */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-3">{content.title}</h1>
-        
+
         {/* Categories & Location */}
         <div className="flex flex-wrap gap-2 mb-3">
           {content.categories.map((category, index) => (
-            <span 
+            <span
               key={`${category}-${index}`}
               className="px-3 py-1 rounded-full text-sm font-medium capitalize"
-              style={{ 
-                backgroundColor: getCategoryColor(category, '10'), 
-                color: getCategoryColor(category, '700') 
+              style={{
+                backgroundColor: getCategoryColor(category, '10'),
+                color: getCategoryColor(category, '700')
               }}
             >
               {category}
             </span>
           ))}
-          
+
           {content.neighborhood && (
-            <Link 
+            <Link
               to={`/neighborhood/${encodeURIComponent(content.neighborhood)}`}
               className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
             >
@@ -243,7 +271,7 @@ const ContentDetailsPage: React.FC = () => {
             </Link>
           )}
         </div>
-        
+
         {/* Event details */}
         {isEvent && eventDate && (
           <div className="bg-primary-50 rounded-lg p-4 mb-4 border border-primary-100">
@@ -265,19 +293,19 @@ const ContentDetailsPage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {/* Description */}
         <div className="prose prose-lg max-w-none text-gray-700 mb-6">
           <p>{content.description}</p>
         </div>
-        
+
         {/* Tags */}
         {content.tags && content.tags.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Tags</h3>
             <div className="flex flex-wrap gap-2">
               {content.tags.map((tag, index) => (
-                <span 
+                <span
                   key={`${tag}-${index}`}
                   className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
                 >
@@ -287,65 +315,79 @@ const ContentDetailsPage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {/* Action buttons */}
         <div className="flex flex-wrap gap-3">
-          <button 
+          <button
             onClick={handleSave}
-            className={`flex items-center px-4 py-2 rounded-md font-medium ${
-              isSaved 
-                ? 'bg-primary-500 text-white' 
+            className={`flex items-center px-4 py-2 rounded-md font-medium ${isSaved
+                ? 'bg-primary-500 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
+              }`}
           >
-            <svg 
-              className="w-5 h-5 mr-2" 
-              fill={isSaved ? 'currentColor' : 'none'} 
-              viewBox="0 0 24 24" 
+            <svg
+              className="w-5 h-5 mr-2"
+              fill={isSaved ? 'currentColor' : 'none'}
+              viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
                 strokeWidth={isSaved ? 0 : 2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
               />
             </svg>
             {isSaved ? 'Saved' : 'Save'}
           </button>
-          
-          <button 
+
+          <button
             onClick={handleShare}
             className="flex items-center px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
           >
             <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" 
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
               />
             </svg>
             Share
           </button>
-          
+
+          <button
+            onClick={() => setShowFeedback(true)}
+            className="flex items-center px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+              />
+            </svg>
+            {averageRating ? `Rate (${averageRating.toFixed(1)}★)` : 'Rate'}
+          </button>
+
           {content.neighborhood && (
-            <Link 
+            <Link
               to={`/neighborhood/${encodeURIComponent(content.neighborhood)}`}
               className="flex items-center px-4 py-2 rounded-md font-medium bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
             >
               <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
                 />
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
               Explore {content.neighborhood}
@@ -353,12 +395,12 @@ const ContentDetailsPage: React.FC = () => {
           )}
         </div>
       </div>
-      
+
       {/* Similar Content */}
       <div className="mt-10">
         <h2 className="text-xl font-bold text-gray-900 mb-4">You Might Also Like</h2>
         <p className="text-gray-600 mb-6">Similar content you might enjoy</p>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {isLoading ? (
             // Loading skeletons
@@ -376,7 +418,7 @@ const ContentDetailsPage: React.FC = () => {
           )}
         </div>
       </div>
-      
+
       {/* Share modal */}
       {content && (
         <ShareModal
@@ -386,6 +428,15 @@ const ContentDetailsPage: React.FC = () => {
           onClose={() => setIsShareModalOpen(false)}
         />
       )}
+
+      {/* Feedback modal */}
+      <FeedbackModal
+        isOpen={showFeedback}
+        onClose={() => setShowFeedback(false)}
+        onSubmit={handleFeedbackSubmit}
+        contentId={content?.content_id}
+        contentTitle={content?.title}
+      />
     </div>
   );
 };
