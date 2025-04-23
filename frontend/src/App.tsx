@@ -1,4 +1,4 @@
-// frontend/src/App.tsx
+// File path: frontend/src/App.tsx
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
@@ -12,12 +12,11 @@ import NeighborhoodPage from './pages/NeighborhoodPage';
 import ProfilePage from './pages/ProfilePage';
 import SavedItemsPage from './pages/SavedItemsPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 import { UserProvider } from './context/UserContext';
-import './App.css';
-
-// Search components
 import SearchWrapper from './components/search/SearchWrapper';
-// import RecommendationEngineVisualizer from './components/recommendations/RecommendationEngineVisualizer';
+import RecommendationEngineVisualizer from './components/recommendations/RecommendationEngineVisualizer';
+import './App.css';
 
 // ScrollToTop component to reset scroll position when navigating
 function ScrollToTop() {
@@ -48,7 +47,8 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/saved" element={<SavedItemsPage />} />
               <Route path="/search" element={<SearchWrapper />} />
-              {/* <Route path="/engine-demo" element={<RecommendationEngineVisualizer />} /> */}
+              <Route path="/engine-demo" element={<RecommendationEngineVisualizer />} />
+              <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
