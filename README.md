@@ -41,8 +41,8 @@ The project consists of four main components:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/Trendspotter-V1.git
-cd Trendspotter-V1
+git clone https://github.com/yourusername/toronto-trendspotter.git
+cd toronto-trendspotter
 
 # Set up virtual environment
 python -m venv venv
@@ -63,7 +63,7 @@ python src/utils/initialize_db.py
 
 ```bash
 # Start the API server
-uvicorn src.api.main:app --reload
+python run_api.py
 
 # In a separate terminal, start the frontend
 cd frontend
@@ -78,32 +78,63 @@ Visit `http://localhost:3000` to access the Toronto Trendspotter interface.
 ### Project Structure
 
 ```
-Trendspotter-V1/
-├── data/               # For datasets and raw data
-│   ├── raw/            # Original scraped data
-│   └── processed/      # Cleaned and processed data
-├── notebooks/          # Jupyter notebooks for exploration
-├── src/                # Source code
-│   ├── data/           # Data collection and processing
-│   ├── models/         # ML models
-│   ├── api/            # API endpoints
-│   ├── visualization/  # Data visualization
-│   └── utils/          # Utility functions
-├── tests/              # Unit tests
-├── config/             # Configuration files
-├── docs/               # Documentation
+toronto-trendspotter/
+├── data/                      # For datasets and raw data
+│   ├── raw/                   # Original scraped data
+│   └── processed/             # Cleaned and processed data
+├── notebooks/                 # Jupyter notebooks for exploration
+├── src/                       # Source code
+│   ├── api/                   # API endpoints
+│   │   └── recommendation_api.py   # FastAPI implementation
+│   ├── data/                  # Data collection and processing
+│   │   ├── collectors/        # Data collection modules
+│   │   ├── models/            # Data models
+│   │   └── processing/        # Feature extraction
+│   ├── models/                # ML models
+│   │   ├── collaborative_filtering.py
+│   │   ├── content_based.py
+│   │   └── hybrid_recommender.py
+│   └── utils/                 # Utility functions
+├── frontend/                  # React frontend
+│   ├── src/
+│   │   ├── components/        # Reusable UI components
+│   │   ├── pages/             # Page components
+│   │   ├── services/          # API communication
+│   │   └── utils/             # Utility functions
+├── tests/                     # Unit tests
+├── docs/                      # Documentation
+├── requirements.txt           # Python dependencies
+└── README.md                  # Project overview
 ```
 
 ### Running Tests
 
 ```bash
+# Backend tests
 pytest
+
+# Frontend tests
+cd frontend
+npm test
 ```
+
+## Key Components
+
+- **ContentCard**: Pinterest-style visual content display
+- **TorontoMap**: Interactive neighborhood-based discovery
+- **RecommendationSection**: Dynamically loaded recommendation groups
+- **SeasonalTheme**: Season-aware content highlighting
+- **PerformanceDashboard**: Real-time recommendation analytics
+
+## Recommendation Engine
+
+The heart of Toronto Trendspotter is its sophisticated recommendation engine, which uses a hybrid approach combining:
+
+1. **Collaborative Filtering**: Identifies patterns in user-item interactions
+2. **Content-Based Analysis**: Extracts and utilizes features from images and text
+3. **Location-Aware Recommendations**: Prioritizes content from neighborhoods users prefer
+4. **Seasonal Relevance**: Adjusts recommendations based on time of year and seasonal events
 
 ## License
 
 [MIT License](LICENSE)
-
-## Contact
-
-Your Name - your.email@example.com
