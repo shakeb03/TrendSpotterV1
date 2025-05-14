@@ -34,6 +34,7 @@ def get_mongodb_client():
 def get_mongodb_db():
     """Get MongoDB database instance"""
     client = get_mongodb_client()
+    # db_name = os.getenv("MONGO_DB_NAME", "trendspotter-prod")
     db_name = os.getenv("MONGO_DB_NAME", "trendspotter")
     return client[db_name]
 
