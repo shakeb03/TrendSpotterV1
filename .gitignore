@@ -74,7 +74,7 @@ pg_dump.sql
 
 # MongoDB
 *.bson
-*.json
+# *.json
 *.lock
 
 #virtualenv
@@ -83,3 +83,6 @@ venv/
 
 #scrapy cache
 .scrapy/
+
+event_data/
+data/
