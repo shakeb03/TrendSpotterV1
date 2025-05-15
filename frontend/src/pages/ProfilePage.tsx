@@ -120,18 +120,18 @@ const ProfilePage: React.FC = () => {
           title: 'Toronto Jazz Festival',
           timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
         },
-        {
-          type: 'view',
-          contentId: 'content-2',
-          title: 'Distillery District Art Walk',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString() // 5 hours ago
-        },
-        {
-          type: 'click',
-          contentId: 'content-3',
-          title: 'Kensington Market Food Tour',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
-        }
+        // {
+        //   type: 'view',
+        //   contentId: 'content-2',
+        //   title: 'Distillery District Art Walk',
+        //   timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString() // 5 hours ago
+        // },
+        // {
+        //   type: 'click',
+        //   contentId: 'content-3',
+        //   title: 'Kensington Market Food Tour',
+        //   timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
+        // }
       ];
       
       setRecentInteractions(mockInteractions);

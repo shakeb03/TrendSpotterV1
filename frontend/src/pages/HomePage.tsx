@@ -10,10 +10,10 @@ import abTestingService, { TestName } from '../services/ab-testing';
 
 // Toronto neighborhoods for quick navigation
 const FEATURED_NEIGHBORHOODS = [
-  { name: 'Downtown Core', image: 'https://images.unsplash.com/photo-1514924013411-cbf25faa35bb' },
-  { name: 'Distillery District', image: 'https://images.unsplash.com/photo-1569880153113-76e33fc52d5f' },
-  { name: 'Kensington Market', image: 'https://images.unsplash.com/photo-1596395464941-de917238027a' },
-  { name: 'Queen West', image: 'https://images.unsplash.com/photo-1596395463910-4ab618e3c4e4' }
+  { name: 'Downtown Core', image: 'https://upload.wikimedia.org/wikipedia/commons/c/c6/Toronto_-_ON_-_Toronto_Skyline2.jpg' },
+  { name: 'Distillery District', image: 'https://media.cntraveler.com/photos/616480d36a69c761590b271a/16:9/w_2560,c_limit/Distillery%20District-57.jpg' },
+  { name: 'Kensington Market', image: 'https://assets.simpleviewinc.com/simpleview/image/upload/c_fill,f_jpg,h_640,q_65,w_640/v1/clients/toronto/temp_7ccb30a5-9b57-4e2e-b1f5-85973634612d.jpg' },
+  { name: 'Queen West', image: 'https://fr.spacingtoronto.ca/wp-content/uploads/2020/07/shopping-queen-street-13505540121.jpg' }
 ];
 
 const HomePage: React.FC = () => {

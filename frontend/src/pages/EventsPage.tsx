@@ -280,25 +280,25 @@ const POPULAR_VENUES = [
   {
     name: 'Scotiabank Arena',
     description: 'Major sports and entertainment venue, home to the Toronto Maple Leafs and Toronto Raptors.',
-    image: 'https://images.unsplash.com/photo-1583512603866-910c8542ba9d',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/5/57/Scotiabank_Arena_-_2018_%28cropped%29.jpg',
     location: 'Downtown Core'
   },
   {
     name: 'Meridian Hall',
     description: 'Performing arts venue hosting concerts, ballet, theater, and special events.',
-    image: 'https://images.unsplash.com/photo-1578944932516-4a83dbee3b99',
+    image: 'https://i.ytimg.com/vi/laqtzWC2AVY/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLCt2AAe4UvPa-cnDjReSGJF2Gundw',
     location: 'Downtown Core'
   },
   {
     name: 'The Distillery District',
     description: 'Historic district with cobblestone streets hosting cultural events and festivals.',
-    image: 'https://images.unsplash.com/photo-1569880153113-76e33fc52d5f',
+    image: 'https://www.thedistillerydistrict.com/wp-content/uploads/2020/05/1024.jpg',
     location: 'Distillery District'
   },
   {
     name: 'Nathan Phillips Square',
     description: 'Urban plaza and event space in front of Toronto City Hall.',
-    image: 'https://images.unsplash.com/photo-1541199918405-73a419cdf8a4',
+    image: 'https://i.cbc.ca/1.6973006.1729809415!/fileImage/httpImage/image.jpg_gen/derivatives/original_1180/nathan-phillips-square.jpg?im=',
     location: 'Downtown Core'
   },
   {

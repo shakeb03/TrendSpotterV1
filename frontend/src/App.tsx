@@ -47,8 +47,8 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/saved" element={<SavedItemsPage />} />
               <Route path="/search" element={<SearchWrapper />} />
-              <Route path="/engine-demo" element={<RecommendationEngineVisualizer />} />
-              <Route path="/admin" element={<AdminDashboardPage />} />
+              {/* <Route path="/engine-demo" element={<RecommendationEngineVisualizer />} /> */}
+              {/* <Route path="/admin" element={<AdminDashboardPage />} /> */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
