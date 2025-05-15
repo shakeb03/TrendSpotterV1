@@ -59,7 +59,8 @@ def check_models_trained():
         logger.error(f"Error checking model training: {e}")
         return False
 
-def start_api(host="127.0.0.1", port=8000, reload=False):
+# def start_api(host="127.0.0.1", port=8000, reload=False):
+def start_api(port, host="0.0.0.0", reload=False):
     """Start the FastAPI server"""
     api_module = "src.api.recommendation_api:app"
     
@@ -105,4 +106,5 @@ def main():
         logger.error(traceback.format_exc())
 
 if __name__ == "__main__":
+    port = 8000
     main()
