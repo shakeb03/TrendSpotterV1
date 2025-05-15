@@ -91,7 +91,7 @@ const ContentDetailsPage: React.FC = () => {
             title: id.includes('jazz') ? "Toronto Jazz Festival" :
               id.includes('film') ? "Toronto International Film Festival" :
                 "Toronto Festival Event",
-            description: "This is a sample event created to demonstrate the Toronto Trendspotter app. In a production system, this would be a real event from a database or API.",
+            description: "This is a sample event created to demonstrate the Toronto Trendspotter app. In a production system, this would be a real event from a database",
             image_url: `https://source.unsplash.com/featured/?toronto,festival`,
             categories: ["event"],
             tags: ["toronto", "sample", "festival", "event"],
