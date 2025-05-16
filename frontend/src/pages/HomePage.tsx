@@ -312,13 +312,13 @@ const HomePage: React.FC = () => {
       {abTestVariant && getOrderedSections()}
       
       {/* Bottom CTA */}
-      <div className="bg-gray-50 rounded-xl p-6 text-center">
+      {/* <div className="bg-gray-50 rounded-xl p-6 text-center">
         <h2 className="text-xl font-bold mb-2">Want to see how our recommendation engine works?</h2>
         <p className="text-gray-600 mb-4">Check out our technical visualization of the Toronto Trendspotter engine</p>
         <Link to="/engine-demo" className="btn-primary">
           View Recommendation Engine
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 };
