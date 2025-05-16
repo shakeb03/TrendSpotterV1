@@ -315,6 +315,14 @@ async def get_location_recommendations(
 
 @app.get("/recommendations/popular", response_model=RecommendationResponse)
 async def get_popular_content(
+    import subprocess
+    result = subprocess.run("cd ~/trendspotter && git pull origin main", shell=True, capture_output=True, text=True)
+    return {
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "status": "updated from GitHub"
+    }
+
     count: int = Query(10, ge=1, le=100),  # Limit to max 100 items
     category: Optional[str] = None
 ):
