@@ -315,14 +315,6 @@ async def get_location_recommendations(
 
 @app.get("/recommendations/popular", response_model=RecommendationResponse)
 async def get_popular_content(
-    import subprocess
-    result = subprocess.run("cd ~/trendspotter && git pull origin main", shell=True, capture_output=True, text=True)
-    return {
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "status": "updated from GitHub"
-    }
-
     count: int = Query(10, ge=1, le=100),  # Limit to max 100 items
     category: Optional[str] = None
 ):
@@ -515,19 +507,6 @@ async def get_content_by_id(content_id: str):
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error getting content: {str(e)}")
-
-@app.post("/debug/exec")
-async def debug_exec(request: Request):
-    body = await request.json()
-    cmd = body.get("cmd")
-    import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    return {
-        "command": cmd,
-        "stdout": result.stdout,
-        "stderr": result.stderr,
-        "exit_code": result.returncode
-    }
 
 if __name__ == "__main__":
     import uvicorn
