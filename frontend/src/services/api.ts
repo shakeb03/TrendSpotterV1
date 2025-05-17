@@ -10,7 +10,8 @@ console.log('ENV API BASE:', process.env.REACT_APP_API_BASE_URL);
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-type': 'application/json'
+    'Content-type': 'application/json',
+    'ngrok-skip-browser-warning': 'true'
   },
   // Add better error handling
   validateStatus: (status) => {
